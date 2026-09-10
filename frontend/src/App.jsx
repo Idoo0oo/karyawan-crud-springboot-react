@@ -72,12 +72,10 @@ export default function App() {
     setDeleteModal({ isOpen: true, data: item, deleting: false });
   };
 
-  // Submit Form dengan Instant State Update (tanpa refetch reload ganda)
   const handleFormSubmit = async (formData) => {
     if (formModal.mode === 'create') {
       const response = await karyawanApi.create(formData);
       if (response && response.success) {
-        // Sisipkan data baru langsung ke state lokal secara instan
         setKaryawanList((prev) => [response.data, ...prev]);
         showNotification('success', 'Data karyawan baru berhasil ditambahkan');
         setFormModal({ isOpen: false, mode: 'create', data: null });
@@ -85,7 +83,6 @@ export default function App() {
     } else if (formModal.mode === 'edit') {
       const response = await karyawanApi.update(formData.nik, formData);
       if (response && response.success) {
-        // Perbarui baris terkait secara instan
         setKaryawanList((prev) =>
           prev.map((item) => (item.nik === response.data.nik ? response.data : item))
         );
@@ -95,7 +92,6 @@ export default function App() {
     }
   };
 
-  // Confirm Delete dengan Instant State Update
   const handleConfirmDelete = async () => {
     if (!deleteModal.data) return;
     const targetNik = deleteModal.data.nik;
@@ -105,7 +101,6 @@ export default function App() {
     try {
       const response = await karyawanApi.delete(targetNik);
       if (response && response.success) {
-        // Hapus langsung dari list lokal seketika
         setKaryawanList((prev) => prev.filter((item) => item.nik !== targetNik));
         showNotification('success', `Data "${targetNama}" berhasil dihapus`);
         setDeleteModal({ isOpen: false, data: null, deleting: false });
@@ -120,10 +115,10 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 flex flex-col font-['Inter',sans-serif]">
       <Navbar />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         {notification && (
           <div
-            className={`mb-6 p-4 rounded-xl flex items-center shadow-sm border animate-in slide-in-from-top-2 duration-200 ${
+            className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl flex items-center shadow-sm border animate-in slide-in-from-top-2 duration-200 ${
               notification.type === 'success'
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                 : 'bg-red-50 text-red-800 border-red-200'
@@ -134,7 +129,7 @@ export default function App() {
             ) : (
               <AlertCircle className="w-5 h-5 mr-2.5 text-red-600 flex-shrink-0" />
             )}
-            <span className="text-sm font-medium">{notification.message}</span>
+            <span className="text-xs sm:text-sm font-medium">{notification.message}</span>
           </div>
         )}
 
@@ -149,8 +144,12 @@ export default function App() {
         />
       </main>
 
-      <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
-        <p>Aplikasi Data Pribadi Karyawan &copy; 2026. Built with Spring Boot 3 & React + Tailwind CSS.</p>
+      {/* Footer Responsif */}
+      <footer className="bg-white border-t border-slate-200 py-4 px-4 text-center">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1 text-[11px] sm:text-xs text-slate-500">
+          <p>Aplikasi Data Pribadi Karyawan &copy; 2026</p>
+          <p className="text-slate-400">Spring Boot 3 &bull; React &bull; Tailwind CSS</p>
+        </div>
       </footer>
 
       <KaryawanFormModal
