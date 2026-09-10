@@ -12,31 +12,27 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [searchFilter, setSearchFilter] = useState({ nik: '', nama: '' });
 
-  // Modal Form State (Tambah / Edit / Detail)
   const [formModal, setFormModal] = useState({
     isOpen: false,
-    mode: 'create', // 'create' | 'edit' | 'detail'
+    mode: 'create',
     data: null,
   });
 
-  // Modal Delete State
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     data: null,
     deleting: false,
   });
 
-  // Toast Notification State
   const [notification, setNotification] = useState(null);
 
   const showNotification = (type, message) => {
     setNotification({ type, message });
     setTimeout(() => {
       setNotification(null);
-    }, 4000);
+    }, 3500);
   };
 
-  // Fetch list karyawan dari REST API Backend
   const fetchKaryawan = useCallback(async (filter = searchFilter) => {
     setLoading(true);
     try {
@@ -55,77 +51,64 @@ export default function App() {
     fetchKaryawan();
   }, [fetchKaryawan]);
 
-  // Handle Search Filter dari SearchBar
   const handleSearch = (filter) => {
     setSearchFilter(filter);
     fetchKaryawan(filter);
   };
 
-  // Open Modal Create
   const handleOpenAddModal = () => {
-    setFormModal({
-      isOpen: true,
-      mode: 'create',
-      data: null,
-    });
+    setFormModal({ isOpen: true, mode: 'create', data: null });
   };
 
-  // Open Modal Detail
   const handleOpenDetailModal = (item) => {
-    setFormModal({
-      isOpen: true,
-      mode: 'detail',
-      data: item,
-    });
+    setFormModal({ isOpen: true, mode: 'detail', data: item });
   };
 
-  // Open Modal Edit
   const handleOpenEditModal = (item) => {
-    setFormModal({
-      isOpen: true,
-      mode: 'edit',
-      data: item,
-    });
+    setFormModal({ isOpen: true, mode: 'edit', data: item });
   };
 
-  // Open Modal Delete
   const handleOpenDeleteModal = (item) => {
-    setDeleteModal({
-      isOpen: true,
-      data: item,
-      deleting: false,
-    });
+    setDeleteModal({ isOpen: true, data: item, deleting: false });
   };
 
-  // Submit Form (Create / Update)
+  // Submit Form dengan Instant State Update (tanpa refetch reload ganda)
   const handleFormSubmit = async (formData) => {
     if (formModal.mode === 'create') {
       const response = await karyawanApi.create(formData);
-      if (response.success) {
+      if (response && response.success) {
+        // Sisipkan data baru langsung ke state lokal secara instan
+        setKaryawanList((prev) => [response.data, ...prev]);
         showNotification('success', 'Data karyawan baru berhasil ditambahkan');
         setFormModal({ isOpen: false, mode: 'create', data: null });
-        fetchKaryawan();
       }
     } else if (formModal.mode === 'edit') {
       const response = await karyawanApi.update(formData.nik, formData);
-      if (response.success) {
+      if (response && response.success) {
+        // Perbarui baris terkait secara instan
+        setKaryawanList((prev) =>
+          prev.map((item) => (item.nik === response.data.nik ? response.data : item))
+        );
         showNotification('success', 'Data karyawan berhasil diperbarui');
         setFormModal({ isOpen: false, mode: 'edit', data: null });
-        fetchKaryawan();
       }
     }
   };
 
-  // Confirm Delete
+  // Confirm Delete dengan Instant State Update
   const handleConfirmDelete = async () => {
     if (!deleteModal.data) return;
+    const targetNik = deleteModal.data.nik;
+    const targetNama = deleteModal.data.namaLengkap;
+
     setDeleteModal((prev) => ({ ...prev, deleting: true }));
     try {
-      const response = await karyawanApi.delete(deleteModal.data.nik);
-      if (response.success) {
-        showNotification('success', `Data "${deleteModal.data.namaLengkap}" berhasil dihapus`);
+      const response = await karyawanApi.delete(targetNik);
+      if (response && response.success) {
+        // Hapus langsung dari list lokal seketika
+        setKaryawanList((prev) => prev.filter((item) => item.nik !== targetNik));
+        showNotification('success', `Data "${targetNama}" berhasil dihapus`);
         setDeleteModal({ isOpen: false, data: null, deleting: false });
-        fetchKaryawan();
       }
     } catch (err) {
       showNotification('error', err.response?.data?.message || 'Gagal menghapus data karyawan');
@@ -135,13 +118,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-['Inter',sans-serif]">
-      {/* Navbar Header */}
       <Navbar />
 
-      {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Toast Notification */}
         {notification && (
           <div
             className={`mb-6 p-4 rounded-xl flex items-center shadow-sm border animate-in slide-in-from-top-2 duration-200 ${
@@ -159,13 +138,8 @@ export default function App() {
           </div>
         )}
 
-        {/* Search & Action Bar */}
-        <SearchBar
-          onSearch={handleSearch}
-          onOpenAddModal={handleOpenAddModal}
-        />
+        <SearchBar onSearch={handleSearch} onOpenAddModal={handleOpenAddModal} />
 
-        {/* Monitoring Data Table */}
         <KaryawanTable
           karyawanList={karyawanList}
           loading={loading}
@@ -175,12 +149,10 @@ export default function App() {
         />
       </main>
 
-      {/* Footer */}
       <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
         <p>Aplikasi Data Pribadi Karyawan &copy; 2026. Built with Spring Boot 3 & React + Tailwind CSS.</p>
       </footer>
 
-      {/* Form Modal (Create, Edit, Detail) */}
       <KaryawanFormModal
         isOpen={formModal.isOpen}
         mode={formModal.mode}
@@ -189,7 +161,6 @@ export default function App() {
         onSubmit={handleFormSubmit}
       />
 
-      {/* Confirm Delete Modal */}
       <ConfirmDeleteModal
         isOpen={deleteModal.isOpen}
         data={deleteModal.data}
